@@ -1,4 +1,4 @@
-/// <reference path="../../Builder/types.d.ts" />
+/// <reference path="../Builder/types.d.ts" />
 
 import React, {Component} from "react";
 import {Plugin} from "@structs";
