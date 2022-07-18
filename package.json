@@ -1,0 +1,6 @@
+{
+    "name": "discord-plugins",
+    "dependencies": {
+        "@types/react": "^18.0.15"
+    }
+}
