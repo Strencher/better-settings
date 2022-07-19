@@ -150,6 +150,9 @@ export default class BetterSettings extends Plugin {
 
         after<React.Component<{selectedItem: string, item: any, __preview?: boolean, __settings: {color: {fg: string, bg: string}, name: string}}, {active: boolean, hovered: boolean}>, any[], React.ReactElement>(Item.prototype, "render", (_this, _, res) => {
             const section = _this.props.item;
+
+            if (!section) return;
+
             const showBackground = _this.props.selectedItem === section.section || _this.state.hovered;
             const settings = _this.props.__settings || getSetting(["customItems", section.section].join("."), {color: {fg: null, bg: null}, name: _this.props.item.label});
             
@@ -162,7 +165,7 @@ export default class BetterSettings extends Plugin {
                             ? res.props.children.props
                             : res.props.children.props.children;
                     
-                    const label = highlightQuery(settings.name, SettingsSearchStore.getQuery());
+                    const label = SettingsSearchStore.getQuery() ? highlightQuery(settings.name, SettingsSearchStore.getQuery()) : settings.name;
 
                     if (Array.isArray(tree)) {
                         tree[0] = label;

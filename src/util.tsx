@@ -42,12 +42,9 @@ export function highlightQuery(input: string, query: string) {
     const items = [];
 
     for (let i = 0; i < input.length; i++) {
-        if (!chars.has(input[i].toLowerCase())) items.push(input[i]);
-        else {
-            items.push(
-                <span key={input[i]} className="highlight">{input[i]}</span>
-            );
-        }
+        items.push(
+            <span key={input[i]} className={chars.has(input[i].toLowerCase()) && "highlight"}>{input[i]}</span>
+        );
     }
 
     return (
