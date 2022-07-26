@@ -17,3 +17,29 @@
         text-decoration: underline;
     }
 }
+
+.bs-modal-preview {
+    background: var(--background-secondary-alt);
+    padding: 15px 10px;
+    border-radius: 4px;
+
+    .bs-modal-blankslate {
+        background: var(--background-accent);
+        width: 100px;
+        height: 5px;
+        border-radius: 8px;
+
+        &.first {
+            margin-bottom: 10px;
+        }
+
+        &.last {
+            margin-top: 10px;
+        }
+    }
+    
+    .bs-sidebar-item {
+        max-width: 192px;
+    }
+}
+

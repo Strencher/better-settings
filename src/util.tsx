@@ -1,12 +1,21 @@
 import {getSetting} from "@settings";
+import {find, getByProps} from "@webpack";
 import React from "react";
+
+type Constants = {
+    UserSettingsSections: {PREMIUM: string},
+    GuildSettingsSections: {GUILD_AUTOMOD: string, GUILD_TEMPLATES: string}
+};
+
+const i18n = find<{Messages: any}>(m => m?.Messages?.CLOSE);
+const {GuildSettingsSections} = getByProps<Constants>("UserSettingsSections");
 
 export function filterSections(section: any, query: string, index: number) {
     if (!section) return false;
     if (section.__search) return true;
     if (section.section === "HEADER") return false;
     
-    if (section.label) {
+    if (typeof section.label === "string") {
         const settings = getSetting(["customItems", section.section].join("."), {name: section.label});
 
         if (!fuzzyMatch(settings.name, query)) return false;
@@ -62,4 +71,30 @@ export function hexToRGBA(hex: string, A = "1") {
     rgb.push(A);
 
     return `rgba(${rgb})`;
+}
+
+export function fixStupidity(section) {
+    if (typeof section.label === "string") return section.label;
+    if (section.section === GuildSettingsSections.GUILD_AUTOMOD) return section?.label?.props?.children?.[0];
+    if (section.section === GuildSettingsSections.GUILD_TEMPLATES) return i18n.Messages[section.section];
+
+    return section;
+}
+
+let idCache = {};
+export function getLabelId(label: string) {
+    if (idCache[label]) return idCache[label];
+
+    const id = Object.entries(i18n.Messages).find(([, v]) => v === label)?.[0];
+    idCache[label] = id;
+
+    return id;
+}
+
+export function getSectionId(item) {
+    if (item.section === "DELETE") {
+        return getLabelId(item.label) || item.section;
+    }
+
+    return item.section;
 }

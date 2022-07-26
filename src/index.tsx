@@ -1,23 +1,27 @@
 /// <reference path="../Builder/types.d.ts" />
 
-import React, {Component} from "react";
-import {Plugin} from "@structs";
+import {filterSections, fixStupidity, getSectionId, getSectionIndex, hexToRGBA, highlightQuery} from "./util";
+import {find, getByDisplayName, getByProps} from "@webpack";
 import {after, unpatchAll} from "@patcher";
-import {getByDisplayName, getByProps} from "@webpack";
 import SettingsSearchStore from "./store";
-import {filterSections, getSectionIndex, hexToRGBA, highlightQuery} from "./util";
-import SearchItems from "./items";
-import Style from "./style.scss";
-import ModalStyle from "./components/modal.scss";
-import {Caret} from "./caret";
+import React, {Component} from "react";
 import Modal from "./components/modal";
-import ColorPicker from "./components/colorpicker.scss";
 import {getSetting} from "@settings";
+import SearchItems from "./items";
+import {Plugin} from "@structs";
+import {Caret} from "./caret";
 
-Style.concat(ModalStyle, ColorPicker);
+import Style from "./style.scss";
+import "./components/colorpicker.scss";
+import "./components/modal.scss";
+
+type Constants = {
+    UserSettingsSections: {PREMIUM: string},
+    GuildSettingsSections: {GUILD_AUTOMOD: string, GUILD_TEMPLATES: string}
+};
 
 const ModalActions = getByProps<{openModal(render: any): string}>("openModal", "useModalsStore");
-const {UserSettingsSections} = getByProps<{UserSettingsSections: {PREMIUM: string}}>("UserSettingsSections");
+const {UserSettingsSections, GuildSettingsSections} = getByProps<Constants>("UserSettingsSections");
 const Caret = getByDisplayName<Caret>("Caret");
 
 export default class BetterSettings extends Plugin {
@@ -25,6 +29,7 @@ export default class BetterSettings extends Plugin {
         Style.load();
         this.patchSettingsView();
         this.patchSettingsItem();
+        this.patchGuildTemplateLabel();
     }
 
     public patchSettingsView(): void {
@@ -153,18 +158,18 @@ export default class BetterSettings extends Plugin {
 
             if (!section) return;
 
-            const showBackground = _this.props.selectedItem === section.section || _this.state.hovered;
-            const settings = _this.props.__settings || getSetting(["customItems", section.section].join("."), {color: {fg: null, bg: null}, name: _this.props.item.label});
-            
+            const showBackground = _this.props.selectedItem === getSectionId(section) || _this.state.hovered;
+            const settings = _this.props.__settings || getSetting(["customItems", getSectionId(section)].join("."), {color: {fg: null, bg: null}, name: fixStupidity(_this.props.item)});
             if (section?.label) {
                 try {
-                    const isNitro = section.section === UserSettingsSections.PREMIUM;
+                    const isGuildTemplates = getSectionId(section) === GuildSettingsSections.GUILD_TEMPLATES;
+                    const isNitro = getSectionId(section) === UserSettingsSections.PREMIUM;
                     const tree = typeof res.props.children === "string"
                         ? res.props
-                        : isNitro
+                        : isNitro || isGuildTemplates
                             ? res.props.children.props
                             : res.props.children.props.children;
-                    
+
                     const label = SettingsSearchStore.getQuery() ? highlightQuery(settings.name, SettingsSearchStore.getQuery()) : settings.name;
 
                     if (Array.isArray(tree)) {
@@ -175,7 +180,7 @@ export default class BetterSettings extends Plugin {
                         if (settings.color.bg && tree.isSelected) {
                             tree.isSelected = false;
                         }
-                    } else {
+                    } else if (tree) {
                         tree.children = label;
                     }
                 } catch (error) {
@@ -197,6 +202,18 @@ export default class BetterSettings extends Plugin {
             });
             
             return res;
+        });
+    }
+
+    public patchGuildTemplateLabel() {
+        const GuildSettingsTemplateLabel = getByDisplayName("GuildSettingsTemplateLabel", {default: false});
+
+        after<any, any, any>(GuildSettingsTemplateLabel, "default", (_, [{children}], res) => {
+            if (Array.isArray(res?.props?.children)) {
+                res.props.children[0] = children;
+            } else if (res?.props) {
+                res.props.children = children;
+            }
         });
     }
 

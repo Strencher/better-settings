@@ -1,6 +1,7 @@
 import {getSetting, onChange, setSetting} from "@settings";
 import {getByDisplayName, getByProps} from "@webpack";
 import React from "react";
+import {fixStupidity, getSectionId} from "../util";
 import {Button} from "./button.d";
 import ColorPicker from "./colorpicker";
 
@@ -9,7 +10,10 @@ const {Item} = getByProps<any>("Item", "Separator", "Header");
 const {ModalRoot, ModalHeader, ModalFooter, ModalContent, ModalCloseButton} = getByProps<any>("ModalRoot");
 const Button = getByProps<Button>("BorderColors", "Colors");
 const {FormItem} = getByProps<any>("FormItem");
-const classes = getByProps<any>("item", "topPill");
+const classes = Object.assign({},
+    getByProps<any>("item", "topPill"),
+    getByProps("tabBarItemContainer")
+);
 const TextInput = getByDisplayName<any>("TextInput");
 
 type Setting = {
@@ -35,7 +39,7 @@ class SettingsConfigurationModal extends React.Component<{
     }
 
     public handleSave = () => {
-        setSetting(["customItems", this.props.item.section].join("."), this.state);
+        setSetting(["customItems", getSectionId(this.props.item)].join("."), this.state);
 
         this.props.modalProps.onClose();
         this.props.updateTarget();
@@ -46,18 +50,29 @@ class SettingsConfigurationModal extends React.Component<{
         e.stopPropagation();
 
         this.setState({
-            name: this.props.item.label,
+            name: fixStupidity(this.props.item),
             color: {
                 bg: null,
                 fg: null
             }
         });
-
-        this.props.updateTarget();
     }
 
     public renderPreview() {
         const {item} = this.props;
+
+        let children: JSX.Element | string; {
+            if (React.isValidElement(item.icon)) {
+                children = (
+                    <div className={classes.tabBarItemContainer}>
+                        {item.label}
+                        {item.icon}
+                    </div>
+                );
+            } else {
+                children = item.label;
+            }
+        };
 
         return (
             <div className={`bs-modal-preview ${classes.side}`}>
@@ -68,11 +83,11 @@ class SettingsConfigurationModal extends React.Component<{
                     item={item}
                     onItemSelect={() => {}}
                     itemType={classes.side}
-                    selectedItem={item.section}
+                    selectedItem={getSectionId(item)}
                     className="bs-sidebar-item"
-                    id={item.section}
+                    id={getSectionId(item)}
                     look={0}
-                >{item.label}</Item>
+                >{children}</Item>
                 <span className="bs-modal-blankslate last" />
             </div>
         );
@@ -84,7 +99,7 @@ class SettingsConfigurationModal extends React.Component<{
         return (
             <ModalRoot {...modalProps}>
                 <ModalHeader separator={false}>
-                    <Heading level="20" variant="heading-lg/medium">Configure "{item.label}"</Heading>
+                    <Heading level="20" variant="heading-lg/medium">Configure "{fixStupidity(item)}"</Heading>
                     <ModalCloseButton
                         onClick={modalProps.onClose}
                         className="bs-modal-close"
@@ -133,7 +148,7 @@ class SettingsConfigurationModal extends React.Component<{
                             value={"#ffffff"}
                         />
                     </FormItem>
-                    <span className="bsm-reset-text">Don't like your changes? Just <a onClick={this.handleReset}>Reset</a> it!</span>
+                    <span className="bsm-reset-text">Don't like your changes? Just <a onClick={this.handleReset}>Reset</a> them!</span>
                 </ModalContent>
                 <ModalFooter>
                     <Button onClick={this.handleSave}>Save</Button>
@@ -161,9 +176,9 @@ const WrappedModal = (props: any) => {
         <SettingsConfigurationModal
             {...props}
             settings={getSetting(
-                ["customItems", props.item.section].join("."),
+                ["customItems", getSectionId(props.item)].join("."),
                 {
-                    name: props.item.label,
+                    name: fixStupidity(props.item),
                     color: {
                         bg: null,
                         fg: null
