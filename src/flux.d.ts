@@ -1,6 +1,6 @@
 export namespace Flux {
     export type Dispatcher = {
-        dirtyDispatch(event: any): void;
+        dispatch(event: any): void;
     };
     
     export class Store {
