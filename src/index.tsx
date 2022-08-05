@@ -1,17 +1,18 @@
 /// <reference path="../Builder/types.d.ts" />
 
 import {filterSections, fixStupidity, getSectionId, getSectionIndex, hexToRGBA, highlightQuery} from "./util";
-import {find, getByDisplayName, getByProps} from "@webpack";
+import {getByDisplayName, getByProps} from "@webpack";
 import {after, unpatchAll} from "@patcher";
 import SettingsSearchStore from "./store";
 import React, {Component} from "react";
 import Modal from "./components/modal";
-import {getSetting} from "@settings";
+import {getSetting, onChange, setSetting} from "@settings";
 import SearchItems from "./items";
 import {Plugin} from "@structs";
 import {Caret} from "./caret";
 
-import Style from "./style.scss";
+import Style from "styles";
+import "./style.scss";
 import "./components/colorpicker.scss";
 import "./components/modal.scss";
 
@@ -37,10 +38,12 @@ export default class BetterSettings extends Plugin {
 
         type Component = React.Component<{sections: any[]}, {query: string, collapsedStates: any}> & {
             handleChange: () => void,
+            flush: Set<Function>,
             renderSettingsSectionTabBarItem: () => React.ReactElement;
         };
 
         after<Component, any[], void>(SettingsView.prototype, "componentDidMount", _this => {
+            _this.flush = new Set();
             _this.handleChange = () => {
                 _this.setState({
                     query: SettingsSearchStore.getQuery(),
@@ -49,16 +52,43 @@ export default class BetterSettings extends Plugin {
             };
 
             SettingsSearchStore.addChangeListener(_this.handleChange);
+
+            _this.flush.add(() => SettingsSearchStore.removeChangeListener(_this.handleChange));
+            _this.flush.add(onChange(id => {
+                switch (id) {
+                    case "favorites":
+                        _this.forceUpdate();
+                }
+            }));
         });
 
-        after<any, any[], void>(SettingsView.prototype, "componentDidMount", _this => {
-            SettingsSearchStore.removeChangeListener(_this.update);
+        after<any, any[], void>(SettingsView.prototype, "componentWillUnmount", _this => {
+            _this._flush?.forEach(e => e());
             SettingsSearchStore.clearQuery();
         });
 
         const ArrayFind = Array.prototype.find;
         after<Component, object[], any[]>(SettingsView.prototype, "getPredicateSections", (_this, _, res) => {
-            res.unshift(...SearchItems);
+            const items = [].concat(SearchItems);
+            
+            {
+                const settings = getSetting("favorites", [])
+                    .map(id => res.findIndex(r => getSectionId(r) === id))
+                    .filter(i => i > -1);
+
+                if (settings.length) {
+                    items.push({section: "HEADER", label: "Favorites", __search: true});
+
+                    for (const section of settings) {
+
+                        items.push(res.splice(section, 1)[0]);
+                    }
+
+                    items.push({section: "DIVIDER"});
+                }
+            }
+
+            res.unshift(...items);
 
             let clone: any[];
 
@@ -101,7 +131,7 @@ export default class BetterSettings extends Plugin {
                     try {
                         res.props.item = item;
                         
-                        if (item.section === "HEADER" && !res.props.item.__search) {
+                        if (item.section === "HEADER" && !res.props.item.__hideCaret) {
                             const opened = !SettingsSearchStore.isCollapsed(res.props.item.label);
 
                             res.props.onClick = () => {
@@ -138,6 +168,11 @@ export default class BetterSettings extends Plugin {
         const {default: Menu, MenuItem} = getByProps<any>("MenuItem", "default");
         
         function SettingsItemContextMenu({item, updateTarget}) {
+            const current = getSetting("favorites", []);
+            const id = getSectionId(item);
+            const favoritesIndex = current.indexOf(id);
+            const isFavorite = favoritesIndex > -1;
+
             return (
                 <Menu navId="settings-item-contextmenu" onClose={ContextMenu.closeContextMenu}>
                     <MenuItem
@@ -148,6 +183,19 @@ export default class BetterSettings extends Plugin {
                             ));
                         }}
                         id="configure"
+                    />
+                    <MenuItem
+                        label={isFavorite ? "Unfavorite" : "Favorite"}
+                        color={isFavorite ? "colorDanger" : undefined}
+                        id="favorite"
+                        action={() => {
+                            if (isFavorite) {
+                                setSetting("favorites", current.slice(0, favoritesIndex).concat(current.slice(favoritesIndex + 1)));
+                            } else {
+                                current.push(id);
+                                setSetting("favorites", [...current]);
+                            }
+                        }}
                     />
                 </Menu>
             );

@@ -29,7 +29,7 @@ const SearchItems = [
 ];
 
 for (const item of SearchItems) {
-    Object.assign(item, {__search: true});
+    Object.assign(item, {__search: true, __hideCaret: true});
 }
 
 export default SearchItems;

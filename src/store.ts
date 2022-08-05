@@ -3,7 +3,7 @@ import {getByProps} from "@webpack";
 import type {Flux as FluxType} from "./flux";
 
 const Flux = getByProps<{Store: typeof FluxType.Store}>("Store", "connectStores");
-const FluxDispatcher = getByProps<FluxType.Dispatcher>("dispatch");
+const FluxDispatcher = getByProps<FluxType.Dispatcher>("dispatch", "isDispatching");
 let query = "";
 let collapsedStates = getSetting("collapsedStates", {});
 
