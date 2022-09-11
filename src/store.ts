@@ -41,8 +41,9 @@ class SearchStore extends (Flux).Store {
     }
 
     public destroy(): void {
-        (FluxDispatcher as any)._dependencyGraph.removeNode(this._dispatchToken);
-        (FluxDispatcher as any)._invalidateCaches();
+        const actions = (FluxDispatcher as any)._actionHandlers;
+        actions?._dependencyGraph.removeNode(this._dispatchToken);
+        actions?._actionHandlers._invalidateCaches();
     }
 }
 

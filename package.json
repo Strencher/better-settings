@@ -1,6 +1,6 @@
 {
     "name": "better-settings",
-    "dependencies": {
+    "devDependencies": {
         "@types/react": "^18.0.15"
     }
 }
